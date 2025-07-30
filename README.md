@@ -18,15 +18,15 @@
 ├── main.py                          # 主脚本，控制变量处理逻辑与输出保存
 ├── config.py                        # API 接口与模型配置
 ├── api/
-│   └── deepseek\_client.py          # 调用 DeepSeek 模型 API 的封装模块
+│   └── deepseek_client.py          # 调用 DeepSeek 模型 API 的封装模块
 ├── prompts/
-│   └── logic\_prompt\_builder.py     # 构造提示词（Prompt）的核心逻辑
+│   └── logic_prompt_builder.py     # 构造提示词（Prompt）的核心逻辑
 ├── data/
-│   └── input\_loader.py             # Excel 文件读取与字段字典预处理
+│   └── input_loader.py             # Excel 文件读取与字段字典预处理
 ├── examples/
-│   ├── 一阶段：变量示例\_k1.0\_20250722.xlsx
-│   ├── 一阶段：变量示例\_k1.1\_20250728.xlsx
-│   └── CC16\_二征征信衍生变量库输入数据字典.xlsx
+│   ├── 一阶段：变量示例_k1.0_20250722.xlsx
+│   ├── 一阶段：变量示例_k1.1_20250728.xlsx
+│   └── CC16_二征征信衍生变量库输入数据字典.xlsx
 ├── output/
 │   └── 变量逻辑生成结果.xlsx       # 模型生成的取值逻辑结果
 
