@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output folders
+assets/
+output/
+examples/*.xlsx
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# Data cache or model results
+*.pkl
+*.joblib
+*.json
+*.csv
+
+# System files
+Thumbs.db
