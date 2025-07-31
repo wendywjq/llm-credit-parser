@@ -5,23 +5,29 @@ import os
 from data.input_loader import load_field_dict, load_appendix_data
 from prompts.logic_prompt_builder import load_few_shot_examples, build_few_shot_block, build_prompt
 from api.deepseek_client import call_deepseek
+from config import (
+    EXCEL_PATH,
+    OUTPUT_PATH,
+    DICT_PATH,
+    FEW_SHOT_PATH,
+    SHEET_NAME,
+    START_ROW,
+    MAX_ROWS,
+    APPENDIX_SHEET,
+    DICT_SHEET
+)
 
 # === 开始计时 ===
 total_start_time = time.time()
 
-# === 配置项 ===
-EXCEL_PATH = "examples/一阶段：变量示例_k1.1_20250728.xlsx"
-OUTPUT_PATH = "output/变量逻辑生成结果.xlsx"
-DICT_PATH = "examples/CC16_二征征信衍生变量库输入数据字典.xlsx"
-FEW_SHOT_PATH = "examples/一阶段：变量示例_k1.0_20250722.xlsx"
-SHEET_NAME = "算话变量"
-START_ROW = 0     # 起始处理行，可指定从第几行开始恢复
-MAX_ROWS = None   # 可限制处理行数，如 10 条测试
-
 # === 加载数据 ===
-full_df = pd.read_excel(EXCEL_PATH, sheet_name=SHEET_NAME)
-field_dict = load_field_dict(DICT_PATH, sheet="征信合表")
-appendix_data = load_appendix_data(DICT_PATH, sheet="附录")
+if os.path.exists(OUTPUT_PATH):
+    full_df = pd.read_excel(OUTPUT_PATH)  # 读取已有输出文件，保留之前的结果
+    print(f"检测到已有输出文件，将从中断位置继续处理")
+else:
+    full_df = pd.read_excel(EXCEL_PATH, sheet_name=SHEET_NAME)  
+field_dict = load_field_dict(DICT_PATH, sheet=DICT_SHEET)
+appendix_data = load_appendix_data(DICT_PATH, sheet=APPENDIX_SHEET)
 few_shot_df = load_few_shot_examples(FEW_SHOT_PATH)
 few_shot_block = build_few_shot_block(few_shot_df)
 os.makedirs("output", exist_ok=True)
@@ -47,7 +53,7 @@ for i in range(START_ROW, len(full_df)):
         print()
         # 将结果写入 DataFrame
         full_df.at[i, "取值逻辑-模型"] = result
-        full_df.to_excel(OUTPUT_PATH, index=False)
+        full_df.to_excel(OUTPUT_PATH, index=False, sheet_name=SHEET_NAME)
         time.sleep(2)  # 避免请求过快，调整频率
     except Exception as e:
         print(f"第 {i + 1} 行处理失败：{e}")
