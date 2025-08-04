@@ -14,7 +14,8 @@ from config import (
     START_ROW,
     MAX_ROWS,
     APPENDIX_SHEET,
-    DICT_SHEET
+    DICT_SHEET,
+    REQUEST_INTERVAL
 )
 
 # === 开始计时 ===
@@ -54,7 +55,7 @@ for i in range(START_ROW, len(full_df)):
         # 将结果写入 DataFrame
         full_df.at[i, "取值逻辑-模型"] = result
         full_df.to_excel(OUTPUT_PATH, index=False, sheet_name=SHEET_NAME)
-        time.sleep(2)  # 避免请求过快，调整频率
+        time.sleep(REQUEST_INTERVAL)  # 避免请求过快，调整频率
     except Exception as e:
         print(f"第 {i + 1} 行处理失败：{e}")
         continue
