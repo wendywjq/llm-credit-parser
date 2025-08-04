@@ -1,7 +1,7 @@
 # config.py
 API_KEY = "your_api_key_here"
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
-MODEL_NAME = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
+MODEL_NAME = "Qwen/Qwen3-8B"
 
 EXCEL_PATH = "examples/一阶段：变量示例_k1.1_20250728.xlsx"
 OUTPUT_PATH = "output/0804变量逻辑生成结果_9_去除聚合.xlsx"
