@@ -3,7 +3,7 @@ import pandas as pd
 
 def load_field_dict(path, sheet="征信合表"):
     df = pd.read_excel(path, sheet_name=sheet)
-    df = df[["字段XML_TAG", "字段中文名", "字段英文名", "表中文名", "表英文名", "表TAG", "字段描述"]].dropna()
+    df = df[["字段XML_TAG", "字段中文名", "表中文名", "表TAG", "字段描述"]].dropna()
     df = df.drop_duplicates(subset=["字段XML_TAG"])
     return df.reset_index(drop=True)
 
