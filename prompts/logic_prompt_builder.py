@@ -1,7 +1,7 @@
 # prompts/logic_prompt_builder.py
 import pandas as pd
 
-def load_few_shot_examples(excel_path: str, sheet: str = "算话变量", max_examples: int = 4):
+def load_few_shot_examples(excel_path: str, sheet: str = "算话变量", max_examples: int = 4, start_row: int = 0) -> pd.DataFrame:
     df = pd.read_excel(excel_path, sheet_name=sheet)
     df = df[["中文名", "代码", "取值逻辑-修订"]].dropna()
     return df.head(max_examples)
@@ -22,7 +22,31 @@ def build_few_shot_block(few_shot_df: pd.DataFrame) -> str:
         """
     return few_shot_block.strip()
 
-def build_prompt(variable_name: str, java_code: str, field_dict_df: pd.DataFrame, appendix_data_df: pd.DataFrame, few_shot_block: str) -> str:
+def build_header_block(headers: dict[str, str], max_chars: int = 12000) -> str:
+    """
+    将 {文件名: 源码} 组合为 Markdown 代码块，并控制总长度不超过 max_chars。
+    若超长，对最后一个文件进行截断并添加注记。
+    """
+    parts = []
+    used = 0
+    for name, code in headers.items():
+        chunk = f"文件：{name}\njava\n{code}\n\n"
+        chunk_len = len(chunk)
+        if used + chunk_len <= max_chars:
+            parts.append(chunk)
+            used += chunk_len
+        else:
+            # 尝试对该文件截断后仍然塞入
+            remaining = max_chars - used
+        if remaining > 200:
+        # 预留注记与围栏
+            safe_len = max(0, remaining - len("文件：\njava\n\n// ...(truncated)\n\n") - len(name) - 10)
+            trimmed = code[:safe_len] + "\n// ...(truncated)\n"
+            parts.append(f"文件：{name}\njava\n{trimmed}\n\n")
+        break
+    return "\n".join(parts).rstrip()
+
+def build_prompt(variable_name: str, java_code: str, field_dict_df: pd.DataFrame, appendix_data_df: pd.DataFrame, few_shot_block: str, header_block: str | None = None) -> str:
     # 构造 few-shot 示例文本
     prompt = f"""
     你是一个征信建模专家。你将根据变量名称、Java 源代码以及字段字典，生成结构化、标准化的中文“取值逻辑说明”。
@@ -52,6 +76,9 @@ def build_prompt(variable_name: str, java_code: str, field_dict_df: pd.DataFrame
     
     字段编码参考附录如下（供模型参考编码与含义）：
     {appendix_data_df.to_markdown(index=False)}
+    
+    【公共头文件（供参考，可能已截断）】
+    {header_block if header_block else "(无)"}
     """
     return prompt
 

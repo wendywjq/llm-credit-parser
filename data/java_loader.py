@@ -23,3 +23,17 @@ def get_all_java_files(base_path: str = "vars") -> list[dict]:
                 except Exception as e:
                     print(f"无法读取文件 {full_path}：{e}")
     return java_files
+
+def load_header_files(paths: list[str]) -> dict[str, str]:
+    """
+    读取公共头文件，返回 {文件名: 代码文本} 的字典。
+    缺失文件不报错，仅警告跳过。
+    """
+    out = {}
+    for p in paths:
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                out[os.path.basename(p)] = f.read()
+        except Exception as e:
+            print(f"[warn] header not loaded: {p} ({e})")
+    return out
