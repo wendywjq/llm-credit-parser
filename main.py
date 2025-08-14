@@ -20,7 +20,7 @@ import time
 import pandas as pd
 
 from data.input_loader import load_field_dict, load_appendix_data
-from data.java_loader import get_all_java_files, load_header_files
+from data.java_loader import get_all_java_files, load_header_files, load_param_sources
 from prompts.logic_prompt_builder import (
     load_few_shot_examples,
     build_few_shot_block,
@@ -44,6 +44,7 @@ from config import (
     HEADER_FILES,         # header file paths (ParameterMapping.java, Utils.java, ...)
     MAX_HEADER_CHARS,     # char cap for header block in prompt
     VARS_DIR,             # base folder for Java mode, e.g., "vars"
+    PARAMS_DIR
 )
 
 # -----------------------------------------------------------------------------
@@ -81,6 +82,7 @@ few_shot_block = build_few_shot_block(few_shot_df)
 
 print("预加载头文件源码 ...")
 headers_src = load_header_files(HEADER_FILES)  # {filename: source_code}
+param_sources = load_param_sources(PARAMS_DIR) # {class_name: source_code}
 
 # -----------------------------------------------------------------------------
 # Mode 1: Excel input
@@ -118,6 +120,7 @@ if INPUT_MODE.lower() == "excel":
                 strip_comments=True,
                 max_chars=MAX_HEADER_CHARS,
                 class_policy={"ParameterMapping": "bodies", "Utils": "signatures"},
+                param_sources=param_sources,
             )
 
             prompt = build_prompt(
@@ -194,6 +197,7 @@ elif INPUT_MODE.lower() == "java":
                 strip_comments=True,
                 max_chars=MAX_HEADER_CHARS,
                 class_policy={"ParameterMapping": "bodies", "Utils": "signatures"},
+                param_sources=param_sources,
             )
 
             prompt = build_prompt(

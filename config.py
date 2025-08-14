@@ -5,7 +5,8 @@ MODEL_NAME = "Qwen/Qwen3-8B"
 
 EXCEL_PATH = "examples/一阶段：变量示例_k1.1_20250728.xlsx"
 VARS_DIR = "vars"
-OUTPUT_PATH = "output/0814变量逻辑生成结果_3.xlsx"
+PARAMS_DIR = "params"   
+OUTPUT_PATH = "output/0815变量逻辑生成结果_1.xlsx"
 DICT_PATH = "examples/CC16_二征征信衍生变量库输入数据字典.xlsx"
 FEW_SHOT_PATH = EXCEL_PATH
 SHEET_NAME = "算话变量"

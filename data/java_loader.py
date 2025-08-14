@@ -37,3 +37,24 @@ def load_header_files(paths: list[str]) -> dict[str, str]:
         except Exception as e:
             print(f"[warn] header not loaded: {p} ({e})")
     return out
+
+def load_param_sources(params_dir: str) -> dict[str, str]:
+    """
+    读取 params_dir 下所有 .java 文件，返回 {类名: 源码文本}。
+    例如：{"CalcAcctType": "...", "LoanBusinessType": "..."}
+    """
+    out = {}
+    if not params_dir or not os.path.isdir(params_dir):
+        return out
+    for root, _, files in os.walk(params_dir):
+        for fn in files:
+            if not fn.endswith(".java"):
+                continue
+            path = os.path.join(root, fn)
+            class_name = os.path.splitext(fn)[0]
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    out[class_name] = f.read()
+            except Exception as e:
+                print(f"[warn] failed to load param file {path}: {e}")
+    return out

@@ -244,6 +244,80 @@ def _make_signatures_for_methods(src: str, used: set[str]) -> list[str]:
     return out
 
 
+# ========== 新增：Class 块抽取 ==========
+def find_class_block(src: str, class_name: str) -> Optional[str]:
+    """
+    抽取顶层 class 块：从 'class Xxx' 到配对 '}'。
+    """
+    m = re.search(r"\bclass\s+%s\b" % re.escape(class_name), src)
+    if not m:
+        return None
+    # 找到 '{'
+    brace_pos = src.find("{", m.end())
+    if brace_pos == -1:
+        return None
+    # 从类声明行的起始位置截取
+    line_start = src.rfind("\n", 0, m.start()) + 1
+
+    depth = 0
+    i = brace_pos
+    n = len(src)
+    in_str = in_char = False
+    escape = False
+    while i < n:
+        ch = src[i]
+        if in_str:
+            if not escape and ch == '"':
+                in_str = False
+            escape = (ch == "\\" and not escape)
+            i += 1
+            continue
+        if in_char:
+            if not escape and ch == "'":
+                in_char = False
+            escape = (ch == "\\" and not escape)
+            i += 1
+            continue
+
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return src[line_start: i + 1]
+        i += 1
+    return None
+
+# ========== 新增：识别 java_code 中“用到的 params 类型名” ==========
+PARAM_IMPORT_RE = re.compile(
+    r"\bimport\s+com\.shuoen\.varshow\.shvar\.vars\.params\.([A-Za-z_]\w*)\s*;"
+)
+PARAM_FQN_RE = re.compile(
+    r"\bcom\.shuoen\.varshow\.shvar\.vars\.params\.([A-Za-z_]\w*)\b"
+)
+PARAM_TOKEN_DOT_RE = re.compile(
+    r"\b([A-Z][A-Za-z0-9_]*)\s*\."  # 捕捉形如 CalcAcctType.Loan
+)
+
+def detect_used_param_types(java_code: str, param_sources: Dict[str, str]) -> List[str]:
+    """
+    返回当前 java_code 用到的 params 类型名（与 param_sources 的 key 取交集）
+    检测来源：
+      1) import com.shuoen.varshow.shvar.vars.params.Xxx;
+      2) 全限定名 com.shuoen.varshow.shvar.vars.params.Xxx
+      3) 符号用法 Xxx.SOMETHING（以点号跟随的大写驼峰）
+    """
+    used = set(PARAM_IMPORT_RE.findall(java_code))
+    used.update(PARAM_FQN_RE.findall(java_code))
+
+    # 扫描点号用法（避免误报，仅保留 param_sources 里存在的）
+    token_candidates = set(PARAM_TOKEN_DOT_RE.findall(java_code))
+    used.update({name for name in token_candidates if name in param_sources})
+
+    # 与已加载的 param 源码做交集
+    return [name for name in used if name in param_sources]
+
+
 # —— 当前 java_code 中使用的方法识别
 PARAM_CALL_RE = re.compile(r"\bParameterMapping\.(\w+)\s*\(")
 UTILS_CALL_RE = re.compile(r"\bUtils\.(\w+)\s*\(")
@@ -256,6 +330,7 @@ def build_used_methods_header_block(
     strip_comments: bool = True,
     max_chars: int = 12000,
     class_policy: Dict[str, str] | None = None,
+    param_sources: Dict[str, str] | None = None,
 ) -> str:
     """
     仅注入“当前 java_code 实际调用的方法”的头文件内容：
@@ -269,6 +344,8 @@ def build_used_methods_header_block(
     """
     if class_policy is None:
         class_policy = {"ParameterMapping": "bodies", "Utils": "signatures"}
+    if param_sources is None:
+        param_sources = {}
 
     used_param = set(PARAM_CALL_RE.findall(java_code))
     used_utils = set(UTILS_CALL_RE.findall(java_code))
@@ -286,9 +363,32 @@ def build_used_methods_header_block(
 
     parts: List[str] = []
     total = 0
+    
+    # ① 先注入 params/ 中“用到的类型”的 enum/class 定义（体量小、价值高）
+    used_param_types = detect_used_param_types(java_code, param_sources)
+    for type_name in used_param_types:
+        src = param_sources.get(type_name, "")
+        if not src:
+            continue
+        block = find_enum_block(src, type_name)
+        if not block:
+            block = find_class_block(src, type_name)  # 兜底：如果不是 enum，也尝试 class
+        if not block:
+            continue
+        text = strip_comments_and_blanklines(block) if strip_comments else block
+        chunk = f"// params.{type_name}\n```java\n{text}\n```\n"
+        if total + len(chunk) <= max_chars:
+            parts.append(chunk)
+            total += len(chunk)
+            print("param", chunk)
+        else:
+            break  # 达到长度上限，提前结束
 
-    # 先尝试注入枚举（通常不大，但非常有助于约束取值）
+    # ② 注入常用枚举（仍保留原来在普通头文件中的枚举寻找逻辑）
     for enum_name in enum_candidates:
+        # 如果该枚举已经在 params 里注入过，就无需再从 headers 里找
+        if enum_name in used_param_types:
+            continue
         for src in logical_sources.values():
             enum_block = find_enum_block(src, enum_name)
             if enum_block:
@@ -299,7 +399,7 @@ def build_used_methods_header_block(
                     total += len(chunk)
                 break
 
-    # —— ParameterMapping
+    # ③ ParameterMapping：按策略注入（方法体或签名）
     if used_param and "ParameterMapping" in logical_sources:
         src = logical_sources["ParameterMapping"]
         policy = class_policy.get("ParameterMapping", "bodies")
@@ -336,7 +436,7 @@ def build_used_methods_header_block(
                 else:
                     break
 
-    # —— Utils：仅方法签名（避免噪声与大体积）
+    # ④ Utils：仅签名
     if used_utils and "Utils" in logical_sources:
         src = logical_sources["Utils"]
         pkg, class_header = _extract_package_and_class_header(src, target_class="Utils")
