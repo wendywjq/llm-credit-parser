@@ -44,7 +44,8 @@ from config import (
     HEADER_FILES,         # header file paths (ParameterMapping.java, Utils.java, ...)
     MAX_HEADER_CHARS,     # char cap for header block in prompt
     VARS_DIR,             # base folder for Java mode, e.g., "vars"
-    PARAMS_DIR
+    PARAMS_DIR,
+    PARAMS_PRESERVE_COMMENTS
 )
 
 # -----------------------------------------------------------------------------
@@ -118,6 +119,7 @@ if INPUT_MODE.lower() == "excel":
                 headers=headers_src,
                 enum_candidates=("LoanBusinessType", "StatType", "CalcAcctType", "CurrencyType"),
                 strip_comments=True,
+                param_preserve_comments=PARAMS_PRESERVE_COMMENTS,           # params 段保留注释
                 max_chars=MAX_HEADER_CHARS,
                 class_policy={"ParameterMapping": "bodies", "Utils": "signatures"},
                 param_sources=param_sources,
@@ -195,6 +197,7 @@ elif INPUT_MODE.lower() == "java":
                 headers=headers_src,
                 enum_candidates=("LoanBusinessType", "StatType", "CalcAcctType", "CurrencyType"),
                 strip_comments=True,
+                param_preserve_comments=PARAMS_PRESERVE_COMMENTS,           # params 段保留注释
                 max_chars=MAX_HEADER_CHARS,
                 class_policy={"ParameterMapping": "bodies", "Utils": "signatures"},
                 param_sources=param_sources,

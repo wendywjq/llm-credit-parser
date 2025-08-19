@@ -331,6 +331,7 @@ def build_used_methods_header_block(
     max_chars: int = 12000,
     class_policy: Dict[str, str] | None = None,
     param_sources: Dict[str, str] | None = None,
+    param_preserve_comments: bool = True,
 ) -> str:
     """
     仅注入“当前 java_code 实际调用的方法”的头文件内容：
@@ -372,17 +373,19 @@ def build_used_methods_header_block(
             continue
         block = find_enum_block(src, type_name)
         if not block:
-            block = find_class_block(src, type_name)  # 兜底：如果不是 enum，也尝试 class
+            block = find_class_block(src, type_name)  # 不是 enum 则尝试 class
         if not block:
             continue
-        text = strip_comments_and_blanklines(block) if strip_comments else block
+
+        # 关键点：params 片段默认保留注释
+        text = block if param_preserve_comments else (strip_comments_and_blanklines(block) if strip_comments else block)
+
         chunk = f"// params.{type_name}\n```java\n{text}\n```\n"
         if total + len(chunk) <= max_chars:
             parts.append(chunk)
             total += len(chunk)
-            print("param", chunk)
         else:
-            break  # 达到长度上限，提前结束
+            break
 
     # ② 注入常用枚举（仍保留原来在普通头文件中的枚举寻找逻辑）
     for enum_name in enum_candidates:
